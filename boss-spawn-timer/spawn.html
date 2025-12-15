@@ -250,10 +250,17 @@ function render(){
 // ---------- Killed Now ----------
 function killedNow(id){
   const boss = bosses.find(b=>b.id===id);
-  boss.lastKilled = Date.now();
-  boss.spawned=false;
-  boss.noticeSent=false;
+  const now = Date.now();
+  boss.lastKilled = now;
+  boss.spawned = false;
+  boss.noticeSent = false;
   stopSound();
+
+  // Update the lastKilled input if this boss is being edited
+  if(editingId === id){
+    document.getElementById("editLastKilled").value = getLocalDateTimeFromTS(now);
+  }
+
   render();
 }
 

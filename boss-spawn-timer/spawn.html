@@ -74,12 +74,13 @@ input[type="datetime-local"] { color-scheme: dark; }
 .spawned { color: var(--success); }
 .warning { color: var(--warning); }
 
-.actions { display: flex; gap: 8px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .actions button { flex: 1; padding: 8px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
 .edit { background: var(--warning); }
 .delete { background: var(--danger); color: white; }
 .killed { background: var(--success); color:#020617; }
 .stop { background: var(--danger); color:white; }
+.copy { background: #38ef7d; color:#020617; }
 small { color: #94a3b8; }
 
 /* Modal */
@@ -220,13 +221,6 @@ function render(){
       startSoundLoop();
     }
 
-    // Only start alarm if remaining <= 0 AND the last killed time + respawn is in the past
-    if(remaining <=0 && !boss.spawned && spawnTime <= now){
-    boss.spawned = true;
-    startSoundLoop();
-}
-
-
     const card = document.createElement("div");
     card.className="boss-card";
     card.innerHTML=`
@@ -235,12 +229,13 @@ function render(){
         <div class="timer ${remaining<=0?'spawned':(remaining<=5*60000?'warning':'')}">${remaining<=0?"SPAWNED!":formatTime(remaining)}</div>
       </div>
       <small>Respawn: ${boss.respawnValue} ${boss.respawnUnit}</small>
-      <small>Last Killed: ${formatPHTime(boss.lastKilled)}</small>
+      <small>Last Killed: <span id="lastKilledDisplay-${boss.id}">${formatPHTime(boss.lastKilled)}</span></small>
       <div class="actions">
         <button class="edit" onclick="openModal(${boss.id})">Edit</button>
         <button class="killed" onclick="killedNow(${boss.id})">Killed Now</button>
         <button class="stop" onclick="stopSound()">Stop Alarm</button>
         <button class="delete" onclick="deleteBoss(${boss.id})">Delete</button>
+        <button class="copy" onclick="copyBoss(${boss.id})">Copy</button>
       </div>
     `;
     bossList.appendChild(card);
@@ -252,16 +247,33 @@ function killedNow(id){
   const boss = bosses.find(b=>b.id===id);
   const now = Date.now();
   boss.lastKilled = now;
-  boss.spawned = false;
-  boss.noticeSent = false;
+  boss.spawned=false;
+  boss.noticeSent=false;
   stopSound();
 
-  // Update the lastKilled input if this boss is being edited
+  // Update edit modal if open
   if(editingId === id){
     document.getElementById("editLastKilled").value = getLocalDateTimeFromTS(now);
   }
 
-  render();
+  // Update display on boss card
+  const display = document.getElementById(`lastKilledDisplay-${id}`);
+  if(display){
+    display.textContent = formatPHTime(now);
+  }
+}
+
+// ---------- Copy Boss ----------
+function copyBoss(id){
+  const boss = bosses.find(b=>b.id===id);
+  if(!boss) return;
+  const text = `${boss.name} - Last Killed: ${formatPHTime(boss.lastKilled)}`;
+  navigator.clipboard.writeText(text).then(()=>{
+    alert(`Copied: ${text}`);
+  }).catch(err=>{
+    alert("Failed to copy");
+    console.error(err);
+  });
 }
 
 // ---------- Sound Loop ----------

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Legend of Ymir Boss Spawn Timer</title>
+
+<style>
+:root {
+  --bg: #0b1220;
+  --card: #0f172a;
+  --border: #1e293b;
+  --primary: #38bdf8;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #facc15;
+  --text: #e5e7eb;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: linear-gradient(135deg, #020617, #0b1220);
+  color: var(--text);
+}
+
+.app { max-width: 720px; margin: auto; padding: 24px; }
+h1 { text-align: center; margin-bottom: 20px; }
+
+/* FORM */
+.form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.form input, .form select, .form button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  background: #020617;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+}
+
+.form select { cursor: pointer; }
+.form button.primary { background: var(--primary); color: #020617; font-weight: bold; cursor: pointer; }
+.form button.calendar { background: #020617; border: 1px dashed var(--border); cursor: pointer; }
+.form button:hover { opacity: 0.9; }
+.hidden { display: none; }
+
+/* Calendar icon fix */
+input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+input[type="datetime-local"] { color-scheme: dark; }
+
+/* Boss Cards */
+.boss-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.boss-header { display: flex; justify-content: space-between; align-items: center; }
+.boss-name { font-size: 18px; font-weight: bold; }
+.timer { font-size: 20px; font-weight: bold; color: var(--primary); }
+.spawned { color: var(--success); }
+.warning { color: var(--warning); }
+
+.actions { display: flex; gap: 8px; }
+.actions button { flex: 1; padding: 8px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+.edit { background: var(--warning); }
+.delete { background: var(--danger); color: white; }
+.killed { background: var(--success); color:#020617; }
+.stop { background: var(--danger); color:white; }
+small { color: #94a3b8; }
+
+/* Modal */
+.modal-bg {
+  position: fixed;
+  top:0; left:0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 20px;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal h2 { margin-top: 0; text-align:center; }
+.modal input, .modal select { margin-top: 10px; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background:#020617; color: var(--text);}
+.modal button { margin-top: 12px; padding: 10px; border:none; border-radius:8px; cursor:pointer; font-weight:bold;}
+.modal button.save { background: var(--primary); color:#020617;}
+.modal button.cancel { background: var(--danger); color:white;}
+</style>
+</head>
+
+<body>
+<div class="app">
+  <h1>🕒 Boss Spawn Timer</h1>
+
+  <div class="form">
+    <input id="bossName" placeholder="Boss Name">
+    <input id="respawnValue" type="number" placeholder="Spawn Timer">
+    <select id="respawnUnit">
+      <option value="minutes">Minutes</option>
+      <option value="hours">Hours</option>
+    </select>
+
+    <button class="calendar" onclick="setLastKilledNow()">📅 Set Last Killed Time</button>
+    <input id="lastKilled" type="datetime-local" class="hidden">
+
+    <button class="primary" onclick="saveBoss()">Add Boss</button>
+  </div>
+
+  <div id="bossList"></div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-bg" id="editModal">
+  <div class="modal">
+    <h2>Edit Boss</h2>
+    <input id="editBossName" placeholder="Boss Name">
+    <input id="editRespawnValue" type="number" placeholder="Respawn Value">
+    <select id="editRespawnUnit">
+      <option value="minutes">Minutes</option>
+      <option value="hours">Hours</option>
+    </select>
+    <input id="editLastKilled" type="datetime-local">
+    <button class="save" onclick="saveEdit()">Save Changes</button>
+    <button class="cancel" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<script>
+let bosses = [];
+let editingId = null;
+let sound = new Audio();
+let soundLoopTimer = null;
+const DEFAULT_SOUND = "sound/wawiwawi.ogg";
+sound.src = DEFAULT_SOUND;
+
+// ---------- Helper: Get current local PH time ----------
+function getCurrentLocalDateTimeString() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth()+1).padStart(2,'0');
+    const day = String(now.getDate()).padStart(2,'0');
+    const hour = String(now.getHours()).padStart(2,'0');
+    const min = String(now.getMinutes()).padStart(2,'0');
+    return `${year}-${month}-${day}T${hour}:${min}`;
+}
+
+function setLastKilledNow() {
+    lastKilled.classList.remove("hidden");
+    lastKilled.value = getCurrentLocalDateTimeString();
+}
+
+// ---------- Save Boss ----------
+function saveBoss(){
+  const name = bossName.value.trim();
+  const value = Number(respawnValue.value);
+  const unit = respawnUnit.value;
+  const killedValue = lastKilled.value;
+  if(!name || !value || !killedValue){ alert("Complete all fields"); return; }
+
+  const lastKilledTS = new Date(killedValue).getTime();
+
+  bosses.push({
+    id: Date.now(),
+    name, respawnValue:value, respawnUnit:unit,
+    respawnMs: unit==="hours"? value*3600000 : value*60000,
+    lastKilled: lastKilledTS,
+    spawned:false,
+    noticeSent:false
+  });
+
+  clearForm();
+  render();
+}
+
+// ---------- Render Boss List ----------
+function render(){
+  bossList.innerHTML="";
+  const now = Date.now();
+
+  bosses.forEach(boss=>{
+    const spawnTime = boss.lastKilled + boss.respawnMs;
+    const remaining = spawnTime - now;
+    const earlyNoticeTime = spawnTime - 5*60000; // 5 min before
+
+    // 5-minute early notice
+    if(remaining > 0 && !boss.noticeSent && now >= earlyNoticeTime){
+      alert(`⚠️ ${boss.name} will spawn in 5 minutes!`);
+      boss.noticeSent = true;
+      const noticeSound = new Audio(DEFAULT_SOUND);
+      noticeSound.volume = 0.3;
+      noticeSound.play();
+    }
+
+    // Spawned alarm
+    if(remaining <=0 && !boss.spawned){
+      boss.spawned = true;
+      startSoundLoop();
+    }
+
+    // Only start alarm if remaining <= 0 AND the last killed time + respawn is in the past
+    if(remaining <=0 && !boss.spawned && spawnTime <= now){
+    boss.spawned = true;
+    startSoundLoop();
+}
+
+
+    const card = document.createElement("div");
+    card.className="boss-card";
+    card.innerHTML=`
+      <div class="boss-header">
+        <div class="boss-name">${boss.name}</div>
+        <div class="timer ${remaining<=0?'spawned':(remaining<=5*60000?'warning':'')}">${remaining<=0?"SPAWNED!":formatTime(remaining)}</div>
+      </div>
+      <small>Respawn: ${boss.respawnValue} ${boss.respawnUnit}</small>
+      <small>Last Killed: ${formatPHTime(boss.lastKilled)}</small>
+      <div class="actions">
+        <button class="edit" onclick="openModal(${boss.id})">Edit</button>
+        <button class="killed" onclick="killedNow(${boss.id})">Killed Now</button>
+        <button class="stop" onclick="stopSound()">Stop Alarm</button>
+        <button class="delete" onclick="deleteBoss(${boss.id})">Delete</button>
+      </div>
+    `;
+    bossList.appendChild(card);
+  });
+}
+
+// ---------- Killed Now ----------
+function killedNow(id){
+  const boss = bosses.find(b=>b.id===id);
+  boss.lastKilled = Date.now();
+  boss.spawned=false;
+  boss.noticeSent=false;
+  stopSound();
+  render();
+}
+
+// ---------- Sound Loop ----------
+function startSoundLoop(){
+  stopSound();
+  sound.loop = true;
+  sound.play();
+  soundLoopTimer = setTimeout(()=>{ stopSound(); }, 5*60000);
+}
+
+function stopSound(){
+  sound.loop=false;
+  sound.pause();
+  sound.currentTime=0;
+  if(soundLoopTimer){ clearTimeout(soundLoopTimer); soundLoopTimer=null; }
+}
+
+// ---------- Format Time ----------
+function formatTime(ms){
+  const h=Math.floor(ms/3600000);
+  const m=Math.floor((ms%3600000)/60000);
+  const s=Math.floor((ms%60000)/1000);
+  return `${h}h ${m}m ${s}s`;
+}
+
+// Format PH time for display
+function formatPHTime(timestamp){
+  const d = new Date(timestamp);
+  return d.toLocaleDateString('en-PH',{year:"numeric",month:"short",day:"numeric"}) + " " +
+         d.toLocaleTimeString('en-PH',{hour:"2-digit",minute:"2-digit",hour12:true});
+}
+
+// ---------- Delete Boss ----------
+function deleteBoss(id){ bosses = bosses.filter(b=>b.id!==id); render(); }
+
+// ---------- Edit Modal ----------
+function openModal(id){
+  const boss = bosses.find(b=>b.id===id);
+  editingId=id;
+  document.getElementById("editBossName").value=boss.name;
+  document.getElementById("editRespawnValue").value=boss.respawnValue;
+  document.getElementById("editRespawnUnit").value=boss.respawnUnit;
+  document.getElementById("editLastKilled").value = getLocalDateTimeFromTS(boss.lastKilled);
+  document.getElementById("editModal").style.display="flex";
+}
+
+function getLocalDateTimeFromTS(ts){
+    const d = new Date(ts);
+    const year = d.getFullYear();
+    const month = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    const hour = String(d.getHours()).padStart(2,'0');
+    const min = String(d.getMinutes()).padStart(2,'0');
+    return `${year}-${month}-${day}T${hour}:${min}`;
+}
+
+function closeModal(){
+  editingId=null;
+  document.getElementById("editModal").style.display="none";
+}
+
+function saveEdit(){
+  if(!editingId) return;
+  const boss = bosses.find(b=>b.id===editingId);
+  boss.name=document.getElementById("editBossName").value.trim();
+  boss.respawnValue=Number(document.getElementById("editRespawnValue").value);
+  boss.respawnUnit=document.getElementById("editRespawnUnit").value;
+  boss.respawnMs = boss.respawnUnit==="hours"? boss.respawnValue*3600000 : boss.respawnValue*60000;
+  boss.lastKilled=new Date(document.getElementById("editLastKilled").value).getTime();
+  boss.spawned=false;
+  boss.noticeSent=false;
+  stopSound();
+  closeModal();
+  render();
+}
+
+// ---------- Clear Form ----------
+function clearForm(){
+  bossName.value="";
+  respawnValue.value="";
+  respawnUnit.value="minutes";
+  lastKilled.value="";
+  lastKilled.classList.add("hidden");
+}
+
+// ---------- Timer Loop ----------
+setInterval(render,1000);
+</script>
+</body>
+</html>

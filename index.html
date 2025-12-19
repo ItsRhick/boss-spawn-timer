@@ -141,7 +141,11 @@ small{color:#94a3b8;display:block;margin-top:2px}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
 <script>
-const firebaseConfig = { apiKey:"AIzaSyDs2d9kBNpYhkvY9Jq24lZyCAvkgVB1vTg", authDomain:"ymir-boss-timer.firebaseapp.com", projectId:"ymir-boss-timer"};
+const firebaseConfig = { 
+  apiKey:"AIzaSyDs2d9kBNpYhkvY9Jq24lZyCAvkgVB1vTg", 
+  authDomain:"ymir-boss-timer.firebaseapp.com", 
+  projectId:"ymir-boss-timer"
+};
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -154,11 +158,25 @@ let mutedBosses={};
 let soundEnabled=false;
 document.addEventListener("click",()=>{soundEnabled=true},{once:true});
 
+// Only allow these users
+const allowedUsers = ["leader@ymir.com","member@ymir.com"];
+
 auth.onAuthStateChanged(async user=>{
   currentUser=user;
-  if(!user){loginBox.classList.remove("hidden");appBox.classList.add("hidden");return;}
-  const doc=await db.collection("admins").doc(user.uid).get();
-  isAdmin=doc.exists;
+  if(!user){
+    loginBox.classList.remove("hidden");appBox.classList.add("hidden");return;
+  }
+
+  // Check if allowed
+  if(!allowedUsers.includes(user.email)){
+    alert("You are not authorized to access this app.");
+    auth.signOut();
+    return;
+  }
+
+  // Leader is admin
+  isAdmin = user.email === "leader@ymir.com";
+
   loginBox.classList.add("hidden");appBox.classList.remove("hidden");
   listenBosses();
 });
@@ -222,6 +240,7 @@ function render(){
 function killedNow(id){db.collection("bosses").doc(id).update({lastKilled:Date.now(),spawned:false,stopped:false,noticeSent:false});sound.pause();sound.currentTime=0;}
 function togglePause(id){const b=bosses.find(x=>x.id===id);if(!isAdmin)return;db.collection("bosses").doc(id).update({stopped:!b.stopped});}
 function copyBoss(id){const b=bosses.find(x=>x.id===id);if(!b)return;const spawnDate=new Date(b.lastKilled+b.respawnMs);const lastKilledStr=new Date(b.lastKilled).toLocaleDateString('en-PH',{year:"numeric",month:"short",day:"numeric"})+" "+new Date(b.lastKilled).toLocaleTimeString('en-PH',{hour:"2-digit",minute:"2-digit",hour12:true});const spawnStr=spawnDate.toLocaleDateString('en-PH',{year:"numeric",month:"short",day:"numeric"})+" "+spawnDate.toLocaleTimeString('en-PH',{hour:"2-digit",minute:"2-digit",hour12:true});navigator.clipboard.writeText(`${b.name}\nLast Killed: ${lastKilledStr}\nExpected Spawn: ${spawnStr}`).then(()=>alert("Copied!"));}
+
 function delBoss(id){if(isAdmin && confirm("Are you sure? Admin only")){sound.pause();sound.currentTime=0;db.collection("bosses").doc(id).delete();}}
 function toggleBossMute(id){mutedBosses[id]=!mutedBosses[id];render();}
 

@@ -2,273 +2,286 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Legend of Ymir Boss Timer</title>
-<style>
-:root{
-  --bg:#0b1220;--card:#0f172a;--border:#1e293b;
-  --primary:#38bdf8;--success:#22c55e;
-  --danger:#ef4444;--warning:#facc15;--text:#e5e7eb;
-}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui;background:linear-gradient(135deg,#020617,#0b1220);color:var(--text)}
-.app{max-width:960px;margin:auto;padding:24px}
-h1{text-align:center;margin-bottom:20px}
-.form,.boss-card{
-  background:var(--card);
-  border:1px solid var(--border);
-  border-radius:14px;
-  padding:16px;
-  margin-bottom:16px;
-}
-.form input,.form select,.form button{
-  width:100%;padding:8px;margin-top:6px;border-radius:6px;border:1px solid var(--border);color:var(--text);background:#020617;
-}
-.form button.primary{background:var(--primary);color:#020617;font-weight:bold;cursor:pointer}
-.form button.stop{background:#7c2d12;color:white;margin-top:6px;}
-.hidden{display:none !important;}
-.boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
-.boss-header{display:flex;justify-content:space-between;align-items:center}
-.timer{font-size:14px;font-weight:bold;color:var(--primary)}
-.spawned{color:var(--success)}
-.warning{color:var(--warning)}
-.actions{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
-.actions button{flex:0 0 auto;padding:4px 6px;font-size:13px;border:none;border-radius:6px;font-weight:bold;cursor:pointer;position:relative;}
-.killed{background:var(--success);color:#020617;}
-.copy{background:#38ef7d;color:#020617;}
-.stop{background:#7c2d12;color:white;}
-.delete{background:var(--danger);color:white;}
-.mute{background:#facc15;color:#020617;}
-.edit{background:#facc15;color:#020617;}
-.actions button:hover::after{
-  content:attr(data-tooltip);
-  position:absolute;
-  bottom:125%;
-  left:50%;
-  transform:translateX(-50%);
-  background:#0f172a;
-  color:#e5e7eb;
-  padding:4px 6px;
-  border-radius:6px;
-  font-size:11px;
-  white-space:nowrap;
-  opacity:0.9;
-}
-small{color:#94a3b8;display:block;margin-top:2px}
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boss Timer</title>
 
-/* Edit modal styling matching app */
-#editModalContent{
-  background: var(--card);
-  border-radius: 14px;
-  padding: 16px;
-  width: 320px;
-  display: flex;
-  flex-direction: column;
-  border:1px solid var(--border);
+<style>
+:root {
+  --bg: #0f172a;
+  --card: #111c33;
+  --accent: #4f46e5;
+  --text: #e5e7eb;
+  --muted: #94a3b8;
+  --danger: #ef4444;
+  --success: #22c55e;
 }
-#editModalContent h2{text-align:center;margin-top:0;margin-bottom:10px;}
-#editModalContent input,#editModalContent select{
-  margin-top:6px;
-  padding:8px;
-  border-radius:6px;
-  border:1px solid var(--border);
-  background:#020617;
+
+* {
+  box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.container {
+  width: 900px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 20px;
+}
+
+.card {
+  background: var(--card);
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
+
+input, button, select {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+input, select {
+  width: 100%;
+  margin-bottom: 10px;
+  background: #0b1220;
   color: var(--text);
 }
-#editModalContent button{
-  margin-top:12px;
-  padding:10px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:bold;
+
+button {
+  cursor: pointer;
+  background: var(--accent);
+  color: white;
+  transition: 0.2s;
 }
-#editModalContent button.save{background:var(--primary);color:#020617;}
-#editModalContent button.cancel{background:var(--danger);color:white;}
+
+button:hover {
+  opacity: 0.85;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.boss {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: #0b1220;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.boss-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.actions button {
+  margin-left: 5px;
+  background: #1f2a44;
+}
+
+.actions button:hover {
+  background: var(--accent);
+}
+
+.danger {
+  background: var(--danger) !important;
+}
+
+.success {
+  background: var(--success) !important;
+}
+
+.volume {
+  width: 100%;
+}
+
 </style>
 </head>
+
 <body>
-<div class="app">
 
-<h1>🕒 Boss Spawn Timer</h1>
+<div class="container">
 
-<!-- LOGIN -->
-<div id="loginBox" class="form">
-  <h3>Guild Login</h3>
-  <input id="email" placeholder="Email">
-  <input id="password" type="password" placeholder="Password">
-  <button class="primary" onclick="login()">Login / Register</button>
-</div>
+<header>
+  <h1>⚔️ Boss Timer System</h1>
+</header>
 
-<!-- BOSS APP -->
-<div id="appBox" class="hidden">
-  <div class="form">
-    <input id="bossName" placeholder="Boss Name">
-    <input id="respawnValue" type="number" placeholder="Spawn Timer">
-    <select id="respawnUnit">
-      <option value="minutes">Minutes</option>
-      <option value="hours">Hours</option>
-    </select>
-    <button onclick="setLastKilledNow()">📅 Set Last Killed Time</button>
-    <input id="lastKilled" type="datetime-local" class="hidden">
-    <button class="primary" onclick="saveBoss()">Add Boss</button>
-    <button class="stop" onclick="logout()">🚪 Logout</button>
+<!-- ADD BOSS -->
+<div class="card">
+  <h3>Add Boss</h3>
+
+  <input id="bossName" placeholder="Boss name">
+
+  <div class="grid">
+    <input id="spawnTime" type="number" placeholder="Spawn time (minutes)">
+    <input id="repeatTime" type="number" placeholder="Repeat timer (minutes)">
   </div>
 
-  <div id="bossList" class="boss-grid"></div>
+  <button onclick="addBoss()">Add Boss</button>
 </div>
 
-<!-- EDIT MODAL -->
-<div id="editModal" class="hidden" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);justify-content:center;align-items:center;z-index:1000;display:flex;">
-  <div id="editModalContent" class="hidden">
-    <h2>Edit Boss</h2>
-    <input id="editBossName" placeholder="Boss Name">
-    <input id="editRespawnValue" type="number" placeholder="Respawn Value">
-    <select id="editRespawnUnit">
-      <option value="minutes">Minutes</option>
-      <option value="hours">Hours</option>
-    </select>
-    <input id="editLastKilled" type="datetime-local">
-    <div style="display:flex;gap:10px;margin-top:12px;">
-      <button class="save" onclick="saveEdit()">Save</button>
-      <button class="cancel" onclick="closeEditModal()">Cancel</button>
-    </div>
-  </div>
+<!-- SETTINGS -->
+<div class="card">
+  <h3>Settings</h3>
+  <label class="small">Alarm Volume</label>
+  <input type="range" min="0" max="1" step="0.01" value="0.5" class="volume" id="volume" oninput="setVolume(this.value)">
 </div>
 
-<!-- FIREBASE -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- LIST -->
+<div class="card">
+  <h3>Boss List</h3>
+  <div id="bossList"></div>
+</div>
+
+</div>
+
+<audio id="alarm">
+  <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+</audio>
 
 <script>
-const firebaseConfig = { 
-  apiKey:"AIzaSyDs2d9kBNpYhkvY9Jq24lZyCAvkgVB1vTg", 
-  authDomain:"ymir-boss-timer.firebaseapp.com", 
-  projectId:"ymir-boss-timer"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
+let bosses = JSON.parse(localStorage.getItem("bosses") || "[]");
+let volume = 0.5;
+const alarm = document.getElementById("alarm");
 
-let currentUser=null;
-let isAdmin=false;
-const sound = new Audio("sound/wawiwawi.ogg");
-sound.loop=true;
-let mutedBosses={};
-let soundEnabled=false;
-document.addEventListener("click",()=>{soundEnabled=true},{once:true});
-
-// Only allow these users
-const allowedUsers = ["leader@ymir.com","member@ymir.com"];
-
-auth.onAuthStateChanged(async user=>{
-  currentUser=user;
-  if(!user){
-    loginBox.classList.remove("hidden");appBox.classList.add("hidden");return;
-  }
-
-  // Check if allowed
-  if(!allowedUsers.includes(user.email)){
-    alert("You are not authorized to access this app.");
-    auth.signOut();
-    return;
-  }
-
-  // Leader is admin
-  isAdmin = user.email === "leader@ymir.com";
-
-  loginBox.classList.add("hidden");appBox.classList.remove("hidden");
-  listenBosses();
-});
-
-function login(){const e=email.value,p=password.value;auth.signInWithEmailAndPassword(e,p).catch(()=>auth.createUserWithEmailAndPassword(e,p));}
-function logout(){auth.signOut();}
-function nowPH(){const now=new Date();const utc=now.getTime()+(now.getTimezoneOffset()*60000);return new Date(utc+(8*60*60000));}
-function setLastKilledNow(){
-  lastKilled.classList.remove("hidden");
-  const d=nowPH();const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0"),
-  h=String(d.getHours()).padStart(2,"0"),min=String(d.getMinutes()).padStart(2,"0");
-  lastKilled.value=`${y}-${m}-${day}T${h}:${min}`;
+function save() {
+  localStorage.setItem("bosses", JSON.stringify(bosses));
+  render();
 }
 
-function formatTime(ms){if(ms<=0)return"SPAWNED!";const h=Math.floor(ms/3600000);const m=Math.floor((ms%3600000)/60000);const s=Math.floor((ms%60000)/1000);return`${h}h ${m}m ${s}s`;}
-function formatPH(ts){return new Date(ts).toLocaleDateString('en-PH',{year:"numeric",month:"short",day:"numeric"}) + " " + new Date(ts).toLocaleTimeString('en-PH',{hour:"2-digit",minute:"2-digit",hour12:true});}
+function addBoss() {
+  const name = document.getElementById("bossName").value;
+  const spawn = parseInt(document.getElementById("spawnTime").value);
+  const repeat = parseInt(document.getElementById("repeatTime").value);
 
-let bosses=[];
-function listenBosses(){db.collection("bosses").orderBy("lastKilled").onSnapshot(snap=>{bosses=snap.docs.map(d=>({id:d.id,...d.data()}));render();});}
+  if (!name || !spawn || !repeat) return;
 
-function saveBoss(){
-  if(!bossName.value||!respawnValue.value||!lastKilled.value){alert("Complete all fields");return;}
-  const respawnMs=respawnUnit.value==="hours"?respawnValue.value*3600000:respawnValue.value*60000;
-  db.collection("bosses").add({name:bossName.value.trim(),respawnValue:Number(respawnValue.value),respawnUnit:respawnUnit.value,respawnMs,lastKilled:new Date(lastKilled.value).getTime(),spawned:false,stopped:false,noticeSent:false});
-  bossName.value="";respawnValue.value="";lastKilled.value="";lastKilled.classList.add("hidden");
+  bosses.push({
+    id: Date.now(),
+    name,
+    spawn,
+    repeat,
+    nextSpawn: Date.now() + spawn * 60000
+  });
+
+  save();
 }
 
-function render(){
-  bossList.innerHTML="";const now=Date.now();
-  bosses.forEach(b=>{
-  const card = document.createElement("div");
-  card.className="boss-card";
+function editBoss(id) {
+  const b = bosses.find(x => x.id === id);
+  const newName = prompt("Edit name", b.name);
+  const newSpawn = prompt("Edit spawn (min)", b.spawn);
+  const newRepeat = prompt("Edit repeat (min)", b.repeat);
 
-  const leaderBtns = isAdmin ? `
-    <button data-tooltip="Mark as killed now" class="killed" onclick="killedNow('${b.id}')">🗡</button>
-    <button data-tooltip="Pause / Resume timer" class="stop" onclick="togglePause('${b.id}')">⏯</button>
-    <button data-tooltip="Edit boss info" class="edit" onclick="openEditModal('${b.id}')">✏️</button>
-    <button data-tooltip="Delete boss" class="delete" onclick="delBoss('${b.id}')">❌</button>
-  ` : "";
+  if (newName) b.name = newName;
+  if (newSpawn) b.spawn = parseInt(newSpawn);
+  if (newRepeat) b.repeat = parseInt(newRepeat);
 
-  card.innerHTML = `
-    <div class="boss-header">
-      <div class="boss-name">${b.name}</div>
-      <div class="timer ${b.stopped?'stopped':b.spawned?'spawned':''}">${b.stopped?"⏸ Paused":(b.spawned?"SPAWNED!":formatTime(b.lastKilled+b.respawnMs-Date.now()))}</div>
-    </div>
-    <small>Respawn: ${b.respawnValue} ${b.respawnUnit}</small>
-    <small>Last Killed: ${formatPH(b.lastKilled)}</small>
-    <div class="actions">
-      ${leaderBtns}
-      <button data-tooltip="Copy spawn info" class="copy" onclick="copyBoss('${b.id}')">📋</button>
-      <button data-tooltip="Mute / Unmute alarm" class="mute" onclick="toggleBossMute('${b.id}')">${mutedBosses[b.id]?'🔈':'🔕'}</button>
-    </div>
-  `;
-
-  bossList.appendChild(card);
-});
-
+  save();
 }
 
-// ACTIONS
-function killedNow(id){db.collection("bosses").doc(id).update({lastKilled:Date.now(),spawned:false,stopped:false,noticeSent:false});sound.pause();sound.currentTime=0;}
-function togglePause(id){const b=bosses.find(x=>x.id===id);if(!isAdmin)return;db.collection("bosses").doc(id).update({stopped:!b.stopped});}
-function copyBoss(id){const b=bosses.find(x=>x.id===id);if(!b)return;const spawnDate=new Date(b.lastKilled+b.respawnMs);const lastKilledStr=new Date(b.lastKilled).toLocaleDateString('en-PH',{year:"numeric",month:"short",day:"numeric"})+" "+new Date(b.lastKilled).toLocaleTimeString('en-PH',{hour:"2-digit",minute:"2-digit",hour12:true});const spawnStr=spawnDate.toLocaleDateString('en-PH',{year:"numeric",month:"short",day:"numeric"})+" "+spawnDate.toLocaleTimeString('en-PH',{hour:"2-digit",minute:"2-digit",hour12:true});navigator.clipboard.writeText(`${b.name}\nLast Killed: ${lastKilledStr}\nExpected Spawn: ${spawnStr}`).then(()=>alert("Copied!"));}
-
-function delBoss(id){if(isAdmin && confirm("Are you sure? Admin only")){sound.pause();sound.currentTime=0;db.collection("bosses").doc(id).delete();}}
-function toggleBossMute(id){mutedBosses[id]=!mutedBosses[id];render();}
-
-// EDIT BOSS
-let editingBossId=null;
-function openEditModal(id){
-  if(!isAdmin){alert("Only admins can edit bosses"); return;}
-  const b=bosses.find(x=>x.id===id); if(!b)return; editingBossId=id;
-  document.getElementById("editBossName").value=b.name;
-  document.getElementById("editRespawnValue").value=b.respawnValue;
-  document.getElementById("editRespawnUnit").value=b.respawnUnit;
-  const d=new Date(b.lastKilled);
-  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'), h=String(d.getHours()).padStart(2,'0'), min=String(d.getMinutes()).padStart(2,'0');
-  document.getElementById("editLastKilled").value=`${y}-${m}-${day}T${h}:${min}`;
-  document.getElementById("editModalContent").classList.remove("hidden");
-  document.getElementById("editModal").classList.remove("hidden");
-}
-function closeEditModal(){ editingBossId=null; document.getElementById("editModalContent").classList.add("hidden"); document.getElementById("editModal").classList.add("hidden"); }
-function saveEdit(){
-  if(!editingBossId) return;
-  const name=document.getElementById("editBossName").value.trim(), value=Number(document.getElementById("editRespawnValue").value),
-  unit=document.getElementById("editRespawnUnit").value, lastKilledTS=new Date(document.getElementById("editLastKilled").value).getTime(),
-  respawnMs=unit==="hours"?value*3600000:value*60000;
-  db.collection("bosses").doc(editingBossId).update({name,respawnValue:value,respawnUnit:unit,respawnMs,lastKilled:lastKilledTS,spawned:false,stopped:false,noticeSent:false});
-  closeEditModal();
+function deleteBoss(id) {
+  bosses = bosses.filter(b => b.id !== id);
+  save();
 }
 
-setInterval(render,1000);
+function killBoss(id) {
+  const b = bosses.find(x => x.id === id);
+  b.nextSpawn = Date.now() + b.repeat * 60000;
+  playAlarm();
+  save();
+}
+
+function playAlarm() {
+  alarm.volume = volume;
+  alarm.currentTime = 0;
+  alarm.play();
+}
+
+function setVolume(v) {
+  volume = v;
+}
+
+function updateTimers() {
+  const now = Date.now();
+
+  bosses.forEach(b => {
+    if (now >= b.nextSpawn) {
+      playAlarm();
+      b.nextSpawn = now + b.repeat * 60000;
+    }
+  });
+
+  render();
+}
+
+function formatTime(ms) {
+  const diff = ms - Date.now();
+  if (diff <= 0) return "NOW";
+
+  const m = Math.floor(diff / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+
+  return `${m}m ${s}s`;
+}
+
+function render() {
+  const list = document.getElementById("bossList");
+  list.innerHTML = "";
+
+  bosses.forEach(b => {
+    const div = document.createElement("div");
+    div.className = "boss";
+
+    div.innerHTML = `
+      <div class="boss-info">
+        <strong>${b.name}</strong>
+        <span class="small">Next spawn: ${formatTime(b.nextSpawn)}</span>
+      </div>
+
+      <div class="actions">
+        <button class="success" onclick="killBoss(${b.id})">Killed</button>
+        <button onclick="editBoss(${b.id})">Edit</button>
+        <button class="danger" onclick="deleteBoss(${b.id})">X</button>
+      </div>
+    `;
+
+    list.appendChild(div);
+  });
+}
+
+setInterval(updateTimers, 1000);
+render();
 </script>
+
 </body>
 </html>
